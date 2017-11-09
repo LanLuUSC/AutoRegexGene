@@ -13,7 +13,7 @@ namespace RegexGenerator
         const int DIR_LEFT = 1 << 1;
         const int DIR_DIAGONAL = 1 << 2;
         // edit distance of delete, insert and replace
-        const int DIS_DEL_INS = 2;
+        const int DIS_DEL_INS = 1;
         const int DIS_REP = 1;
         public static void Test()
         {
@@ -43,7 +43,7 @@ namespace RegexGenerator
             // finalResults is shown here
 
             List<string> results = new List<string>();
-            GetTwoStringsRegex("A-B22324d", "A-C345672", results);
+            GetTwoStringsRegex("AC1234d-1", "AB34654-a", results);
             return;
         }
 
@@ -338,7 +338,10 @@ namespace RegexGenerator
 
                     if ((locDir & DIR_LEFT) != 0) // current second string character is optional in regex
                     {
-                        queue.Enqueue(new Tuple<int, int, string>(x, y - 1, "(" + ConvertNumLetter(curSecond) + ")?" + curStr));
+                        if (curSecond.All(char.IsLetterOrDigit))
+                        {
+                            queue.Enqueue(new Tuple<int, int, string>(x, y - 1, "(" + ConvertNumLetter(curSecond) + ")?" + curStr));
+                        }
                         queue.Enqueue(new Tuple<int, int, string>(x, y - 1, "(" + curSecond + ")?" + curStr));
                     }
                     if ((locDir & DIR_DOWN) != 0) // current first string character is optional in regex
@@ -355,12 +358,18 @@ namespace RegexGenerator
                         {
                             if (curFirst != @"[a-zA-Z]")
                             {
-                                queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[" + curFirst + ConvertNumLetter(curSecond) + "]" + curStr));
+                                if (curSecond.All(char.IsLetterOrDigit))
+                                {
+                                    queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[" + curFirst + ConvertNumLetter(curSecond) + "]" + curStr));
+                                }
                                 queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[" + curFirst + curSecond + "]" + curStr));
                             }
                             else
                             {
-                                queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[a-zA-Z" + ConvertNumLetter(curSecond) + "]" + curStr));
+                                if (curSecond.All(char.IsLetterOrDigit))
+                                {
+                                    queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[a-zA-Z" + ConvertNumLetter(curSecond) + "]" + curStr));
+                                }
                                 queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[a-zA-Z" + curSecond + "]" + curStr));
                             }
                         }
