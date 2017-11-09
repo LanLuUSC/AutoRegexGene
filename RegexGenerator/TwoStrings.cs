@@ -14,64 +14,51 @@ namespace RegexGenerator
         const int DIR_DIAGONAL = 1 << 2;
         // edit distance of delete, insert and replace
         const int DIS_DEL_INS = 1;
-        const int DIS_REP = 1;
+        const int DIS_SUB = 1;
         public static void Test()
         {
-            //List<string> A = new List<string>(new string[]{ @"\d", @"\d", @"\d", "-", @"\d", @"\d", @"\d" });
-            //List<string> B = new List<string>(new string[] { @"(", @"2", @"1", @"3", @")", @"3", @"0", @"4" });
-
-            // do permutation and get all the results
-            //List<string> curResults = new List<string>();
-            //List<List<string>> finalResults = new List<List<string>>();
-            //Permutation(Cut(A), 0, curResults, finalResults);
-
-            //int index = 0;
-            //List<List<int>> direction;
-            //int test = GetEditDistance(A, B, out direction);
-            //List<string> results;
-            //ModifyRegex(A, B, direction, out results);
-            //while (index < finalResults.Count)
-            //{
-            //    Console.WriteLine("--{0}", finalResults[index]);
-            //    if (finalShortResults[index] != finalResults[index])
-            //    {
-            //        Console.WriteLine("  {0}", finalShortResults[index]);
-            //    }
-            //    ++index;
-            //}
-
-            // finalResults is shown here
-
             List<string> results = new List<string>();
-            GetTwoStringsRegex("AC1234d-1", "AB34654-a", results);
+            List<string> suggestions;
+            CreateRegexSuggestion("AC1234d-1", "AB34654-a", out suggestions);
             return;
         }
 
-        public static void GetTwoStringsRegex(string A, string B, List<string> results)
+        /// <summary>
+        /// Create regex suggestions with two string inputs
+        /// </summary>
+        /// <param name="first">the first input string</param>
+        /// <param name="second">the second input string</param>
+        /// <param name="suggestions"></param>
+        public static void CreateRegexSuggestion(string first, string second, out List<string> suggestions)
         {
             // do permutation and get all the results
+            suggestions = new List<string>();
             List<string> curRegex = new List<string>();
-            List<List<string>> regexPerm = new List<List<string>>();
-            Permutation(Cut(A), 0, curRegex, regexPerm);// the permutation don't add "/" to the beginning of special characters
+            List<List<string>> regList = new List<List<string>>();
+
+            // the permutation don't add "/" to the beginning of special characters
+            Permutation(SegmentizeFirst(first), 0, curRegex, regList);
 
             List<List<string>> candidates = new List<List<string>>();
             int distance = Int32.MaxValue;
-            List<string> segB = Segmentize(B);
-            foreach (var regex in regexPerm)
+            List<string> secondCharList = SegmentizeSecond(second);
+            foreach (var regex in regList)
             {
                 List<List<int>> direction;
-                int curDistance = GetEditDistance(regex, segB, out direction);
+                // calculate edit distance of first string regex and second string
+                int curDistance = GetEditDistance(regex, secondCharList, out direction);
                 if (curDistance < distance)
                 {
                     distance = curDistance;
-                    results.Clear();
+                    suggestions.Clear();
                 }
 
+                // if edit distance is equal or smaller, modify first string regex to satisfy second string
                 if (distance == curDistance)
                 {
-                    List<string> curResults;
-                    ModifyRegex(regex, segB, direction, out curResults);
-                    results.AddRange(curResults);
+                    List<string> curSuggestions;
+                    ModifyRegex(regex, secondCharList, direction, out curSuggestions);
+                    suggestions.AddRange(curSuggestions);
                 }
 
             }
@@ -138,7 +125,7 @@ namespace RegexGenerator
                         }
                         else
                         {
-                            matrix[i][j] = Math.Min(Math.Min(matrix[i - 1][j] + DIS_DEL_INS, matrix[i][j - 1] + DIS_DEL_INS), matrix[i - 1][j - 1] + DIS_REP);
+                            matrix[i][j] = Math.Min(Math.Min(matrix[i - 1][j] + DIS_DEL_INS, matrix[i][j - 1] + DIS_DEL_INS), matrix[i - 1][j - 1] + DIS_SUB);
                             if (matrix[i][j] == matrix[i - 1][j] + DIS_DEL_INS)
                             {
                                 direction[i][j] |= DIR_DOWN;
@@ -147,7 +134,7 @@ namespace RegexGenerator
                             {
                                 direction[i][j] |= DIR_LEFT;
                             }
-                            if (matrix[i][j] == matrix[i - 1][j - 1] + DIS_REP)
+                            if (matrix[i][j] == matrix[i - 1][j - 1] + DIS_SUB)
                             {
                                 direction[i][j] |= DIR_DIAGONAL;
                             }
@@ -168,7 +155,12 @@ namespace RegexGenerator
 
             return false;
         }
-        static List<string> Cut(string input)
+        /// <summary>
+        /// Segmentize the first input string, consecutive numbers or letters will be in the same element of any output array
+        /// </summary>
+        /// <param name="input">first input string</param>
+        /// <returns>array of segmentation strings</returns>
+        static List<string> SegmentizeFirst(string input)
         {
             // trim
             input.Trim();
@@ -207,7 +199,12 @@ namespace RegexGenerator
             return segments;
         }
 
-        static List<string> Segmentize(string input)
+        /// <summary>
+        /// Segmentize the second input string, simply cut each character to an element
+        /// </summary>
+        /// <param name="input">second input string</param>
+        /// <returns>array of segmentation strings</returns>
+        static List<string> SegmentizeSecond(string input)
         {
             List<string> list = new List<string>();
 
@@ -219,11 +216,17 @@ namespace RegexGenerator
             return list;
         }
 
+        /// <summary>
+        /// Find all possible and meaningful regex permutations of first string based on segmentation results of first string
+        /// </summary>
+        /// <param name="segments">array of segmentation results of first string</param>
+        /// <param name="index">Recursion parameter</param>
+        /// <param name="curRegex">Recursion parameter</param>
+        /// <param name="finalResults">results</param>
         static void Permutation(List<string> segments, int index, List<string> curRegex, List<List<string>> finalResults)
         {
-            // use recursion
-            // to each segment
-            // add its reges representation
+            // do recursion to each segment
+            // add its regex representation
             // or original character to curRegex
             // then Recur Permutation
             // if there is no more segments, put curRegex to our final Results
@@ -258,6 +261,11 @@ namespace RegexGenerator
             return;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         static string ConvertNumLetter(string input)
         {
             StringBuilder regex = new StringBuilder();
@@ -298,16 +306,16 @@ namespace RegexGenerator
         }
 
         /// <summary>
-        /// 
+        /// Modify the regex so input string can also be represented by output regex list
         /// </summary>
-        /// <param name="first"> first is an regular expression</param>
-        /// <param name="second">regular is a normal input without being regexed</param>
-        /// <param name="direction">trace back direction matrix from dp results</param>
-        /// <param name="results"> the results after we do trace back</param>
-        static void ModifyRegex(List<string> first, List<string> second, List<List<int>> direction, out List<string> results)
+        /// <param name="regex"> a regular expression, which is also a parameter in GetEditDistance Method</param>
+        /// <param name="input"> normal input without being regexed, which is also a parameter in GetEditDistance Method</param>
+        /// <param name="direction">direction matrix created from GetEditDistance Method</param>
+        /// <param name="results"> the results regex</param>
+        static void ModifyRegex(List<string> regex, List<string> input, List<List<int>> direction, out List<string> results)
         {
-            int rows = first.Count + 1;
-            int cols = second.Count + 1;
+            int rows = regex.Count + 1;
+            int cols = input.Count + 1;
             results = new List<string>();
             if (direction.Count != rows) { return; }
             if (direction[0].Count != cols) { return; }
@@ -333,8 +341,8 @@ namespace RegexGenerator
 
                     string curFirst = string.Empty;
                     string curSecond = string.Empty;
-                    if (x > 0) { curFirst = ConvertSpecial(first[x - 1]); }
-                    if (y > 0) { curSecond = ConvertSpecial(second[y - 1]); }
+                    if (x > 0) { curFirst = ConvertSpecial(regex[x - 1]); }
+                    if (y > 0) { curSecond = ConvertSpecial(input[y - 1]); }
 
                     if ((locDir & DIR_LEFT) != 0) // current second string character is optional in regex
                     {
