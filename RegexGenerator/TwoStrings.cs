@@ -43,7 +43,7 @@ namespace RegexGenerator
             // finalResults is shown here
 
             List<string> results = new List<string>();
-            GetTwoStringsRegex("213-304", "(213)555", results);
+            GetTwoStringsRegex("A-B22324d", "A-C345672", results);
             return;
         }
 
@@ -338,6 +338,7 @@ namespace RegexGenerator
 
                     if ((locDir & DIR_LEFT) != 0) // current second string character is optional in regex
                     {
+                        queue.Enqueue(new Tuple<int, int, string>(x, y - 1, "(" + ConvertNumLetter(curSecond) + ")?" + curStr));
                         queue.Enqueue(new Tuple<int, int, string>(x, y - 1, "(" + curSecond + ")?" + curStr));
                     }
                     if ((locDir & DIR_DOWN) != 0) // current first string character is optional in regex
@@ -352,7 +353,16 @@ namespace RegexGenerator
                         }
                         else
                         {
-                            queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, "[" + curFirst + curSecond + "]" + curStr));
+                            if (curFirst != @"[a-zA-Z]")
+                            {
+                                queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[" + curFirst + ConvertNumLetter(curSecond) + "]" + curStr));
+                                queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[" + curFirst + curSecond + "]" + curStr));
+                            }
+                            else
+                            {
+                                queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[a-zA-Z" + ConvertNumLetter(curSecond) + "]" + curStr));
+                                queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[a-zA-Z" + curSecond + "]" + curStr));
+                            }
                         }
                     }
                 }
