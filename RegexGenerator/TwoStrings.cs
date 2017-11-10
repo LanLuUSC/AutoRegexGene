@@ -153,7 +153,17 @@ namespace RegexGenerator
         {
 
             Regex reg = new Regex(regex);
-            if (reg.IsMatch(input)) { return true; }
+            MatchCollection matches = reg.Matches(input);
+            foreach (var match in matches)
+            {
+                // if something like (a?) matches input: b
+                // in MatchCollection we will have an empty element
+                // it is not a real match in our case
+                if (match.ToString() != string.Empty)
+                {
+                    return true;
+                }
+            }
             //if (first == second) { return true; }
             //if (first == @"\d" && second.All(char.IsDigit)) { return true; }
             //if (first == @"[a-zA-Z]" && second.All(char.IsLetter)) { return true; }
