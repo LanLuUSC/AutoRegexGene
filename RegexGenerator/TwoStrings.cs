@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace RegexGenerator
@@ -18,8 +19,8 @@ namespace RegexGenerator
         public static void Test()
         {
             List<string> results = new List<string>();
-            List<string> suggestions;
-            CreateRegexSuggestion("AC1234d-1", "AB34654-a", out suggestions);
+            List<List<string>> suggestions;
+            CreateRegexSuggestion("(213)304-1072", "234-345-3432", out suggestions);
             return;
         }
 
@@ -29,24 +30,25 @@ namespace RegexGenerator
         /// <param name="first">the first input string</param>
         /// <param name="second">the second input string</param>
         /// <param name="suggestions"></param>
-        public static void CreateRegexSuggestion(string first, string second, out List<string> suggestions)
+        public static void CreateRegexSuggestion(string first, string second, out List<List<string>> suggestions)
         {
             // do permutation and get all the results
-            suggestions = new List<string>();
+            suggestions = new List<List<string>>();
             List<string> curRegex = new List<string>();
-            List<List<string>> regList = new List<List<string>>();
+            List<List<string>> regexSuggetions = new List<List<string>>();
 
             // the permutation don't add "/" to the beginning of special characters
-            Permutation(SegmentizeFirst(first), 0, curRegex, regList);
+            // give regex suggestions for single string
+            SingleStringSuggestions(SegmentizeByGroup(first), 0, curRegex, regexSuggetions);
 
             List<List<string>> candidates = new List<List<string>>();
             int distance = Int32.MaxValue;
-            List<string> secondCharList = SegmentizeSecond(second);
-            foreach (var regex in regList)
+            List<string> secondCharsList = SegmentizeByCharacter(second);
+            foreach (var regexSuggestion in regexSuggetions)
             {
                 List<List<int>> direction;
                 // calculate edit distance of first string regex and second string
-                int curDistance = GetEditDistance(regex, secondCharList, out direction);
+                int curDistance = GetEditDistance(regexSuggestion, secondCharsList, out direction);
                 if (curDistance < distance)
                 {
                     distance = curDistance;
@@ -56,9 +58,9 @@ namespace RegexGenerator
                 // if edit distance is equal or smaller, modify first string regex to satisfy second string
                 if (distance == curDistance)
                 {
-                    List<string> curSuggestions;
-                    ModifyRegex(regex, secondCharList, direction, out curSuggestions);
-                    suggestions.AddRange(curSuggestions);
+                    List<List<string>> newSuggestion;
+                    ModifySuggestion(regexSuggestion, secondCharsList, direction, out newSuggestion);
+                    suggestions.AddRange(newSuggestion);
                 }
 
             }
@@ -147,11 +149,14 @@ namespace RegexGenerator
 
         }
 
-        static bool isEqual(string first, string second)
+        static bool isEqual(string regex, string input)
         {
-            if (first == second) { return true; }
-            if (first == @"\d" && second.All(char.IsDigit)) { return true; }
-            if (first == @"[a-zA-Z]" && second.All(char.IsLetter)) { return true; }
+
+            Regex reg = new Regex(regex);
+            if (reg.IsMatch(input)) { return true; }
+            //if (first == second) { return true; }
+            //if (first == @"\d" && second.All(char.IsDigit)) { return true; }
+            //if (first == @"[a-zA-Z]" && second.All(char.IsLetter)) { return true; }
 
             return false;
         }
@@ -160,7 +165,7 @@ namespace RegexGenerator
         /// </summary>
         /// <param name="input">first input string</param>
         /// <returns>array of segmentation strings</returns>
-        static List<string> SegmentizeFirst(string input)
+        static List<string> SegmentizeByGroup(string input)
         {
             // trim
             input.Trim();
@@ -204,7 +209,7 @@ namespace RegexGenerator
         /// </summary>
         /// <param name="input">second input string</param>
         /// <returns>array of segmentation strings</returns>
-        static List<string> SegmentizeSecond(string input)
+        static List<string> SegmentizeByCharacter(string input)
         {
             List<string> list = new List<string>();
 
@@ -217,13 +222,13 @@ namespace RegexGenerator
         }
 
         /// <summary>
-        /// Find all possible and meaningful regex permutations of first string based on segmentation results of first string
+        /// Give regex suggestions based on segmentation results of first string
         /// </summary>
         /// <param name="segments">array of segmentation results of first string</param>
         /// <param name="index">Recursion parameter</param>
         /// <param name="curRegex">Recursion parameter</param>
-        /// <param name="finalResults">results</param>
-        static void Permutation(List<string> segments, int index, List<string> curRegex, List<List<string>> finalResults)
+        /// <param name="suggestions">results</param>
+        static void SingleStringSuggestions(List<string> segments, int index, List<string> curRegex, List<List<string>> suggestions)
         {
             // do recursion to each segment
             // add its regex representation
@@ -234,7 +239,7 @@ namespace RegexGenerator
             if (index >= segments.Count)
             {
                 List<string> result = new List<string>(curRegex);
-                finalResults.Add(result);
+                suggestions.Add(result);
                 return;
             }
 
@@ -242,19 +247,19 @@ namespace RegexGenerator
             List<string> segRegex = new List<string>();
             foreach (var ch in segments[index])
             {
-                curSeg.Add(ch.ToString());
+                curSeg.Add(ConvertSpecial(ch.ToString()));
                 segRegex.Add(ConvertNumLetter(ch.ToString()));
             }
 
 
             curRegex.AddRange(curSeg);
-            Permutation(segments, index + 1, curRegex, finalResults);
+            SingleStringSuggestions(segments, index + 1, curRegex, suggestions);
             curRegex.RemoveRange(curRegex.Count - curSeg.Count, curSeg.Count);
 
             if (curSeg.First().All(char.IsLetterOrDigit))
             {
                 curRegex.AddRange(segRegex);
-                Permutation(segments, index + 1, curRegex, finalResults);
+                SingleStringSuggestions(segments, index + 1, curRegex, suggestions);
                 curRegex.RemoveRange(curRegex.Count - segRegex.Count, segRegex.Count);
             }
 
@@ -295,9 +300,8 @@ namespace RegexGenerator
         /// <returns></returns>
         static string ConvertSpecial(string input)
         {
-
             const string specialCharacters = @"[\/^$.|?*+(){}";
-            if (input.Count() == 1 && input.Contains(specialCharacters))
+            if (input.Count() == 1 && specialCharacters.Contains(input))
             {
                 return  @"\" + input.ToString();
             }
@@ -312,15 +316,15 @@ namespace RegexGenerator
         /// <param name="input"> normal input without being regexed, which is also a parameter in GetEditDistance Method</param>
         /// <param name="direction">direction matrix created from GetEditDistance Method</param>
         /// <param name="results"> the results regex</param>
-        static void ModifyRegex(List<string> regex, List<string> input, List<List<int>> direction, out List<string> results)
+        static void ModifySuggestion(List<string> regex, List<string> input, List<List<int>> direction, out List<List<string>> results)
         {
             int rows = regex.Count + 1;
             int cols = input.Count + 1;
-            results = new List<string>();
+            results = new List<List<string>>();
             if (direction.Count != rows) { return; }
             if (direction[0].Count != cols) { return; }
-            Queue<Tuple<int, int, string>> queue = new Queue<Tuple<int, int, string>>();
-            queue.Enqueue(new Tuple<int, int, string>(rows - 1, cols - 1, string.Empty)); // trace back from the last direction
+            Queue<Tuple<int, int, List<string>>> queue = new Queue<Tuple<int, int, List<string>>>();
+            queue.Enqueue(new Tuple<int, int, List<string>>(rows - 1, cols - 1, new List<string>())); // trace back from the last direction
             while (queue.Count != 0)
             {
                 int size = queue.Count;
@@ -329,7 +333,7 @@ namespace RegexGenerator
                     var pos = queue.Dequeue();
                     int x = pos.Item1;
                     int y = pos.Item2;
-                    string curStr = pos.Item3;
+                    List<string> curStr = pos.Item3;
                     int locDir = direction[x][y];
                     // trace back ends
                     // add results to list
@@ -339,51 +343,67 @@ namespace RegexGenerator
                         break;
                     }
 
-                    string curFirst = string.Empty;
-                    string curSecond = string.Empty;
-                    if (x > 0) { curFirst = ConvertSpecial(regex[x - 1]); }
-                    if (y > 0) { curSecond = ConvertSpecial(input[y - 1]); }
+                    string curRegex = string.Empty;
+                    string curString = string.Empty;
+                    if (x > 0) { curRegex = ConvertSpecial(regex[x - 1]); }
+                    if (y > 0) { curString = ConvertSpecial(input[y - 1]); }
 
                     if ((locDir & DIR_LEFT) != 0) // current second string character is optional in regex
                     {
-                        if (curSecond.All(char.IsLetterOrDigit))
+                        if (curString.All(char.IsLetterOrDigit))
                         {
-                            queue.Enqueue(new Tuple<int, int, string>(x, y - 1, "(" + ConvertNumLetter(curSecond) + ")?" + curStr));
+                            queue.Enqueue(x, y - 1, "(" + ConvertNumLetter(curString) + ")?", curStr);
                         }
-                        queue.Enqueue(new Tuple<int, int, string>(x, y - 1, "(" + curSecond + ")?" + curStr));
+
+                        queue.Enqueue(x, y - 1, "(" + curString + ")?", curStr);
                     }
                     if ((locDir & DIR_DOWN) != 0) // current first string character is optional in regex
                     {
-                        queue.Enqueue(new Tuple<int, int, string>(x - 1, y, "(" + curFirst + ")?" + curStr));
+                        queue.Enqueue(x - 1, y, "(" + curRegex + ")?", curStr);
                     }
                     if ((locDir & DIR_DIAGONAL) != 0) // second or first string is the same or can be replaced
                     {
-                        if (isEqual(curFirst, curSecond))
+                        if (isEqual(curRegex, curString))
                         {
-                            queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, curFirst + curStr));
+                            queue.Enqueue(x - 1, y - 1, curRegex, curStr);
                         }
                         else
                         {
-                            if (curFirst != @"[a-zA-Z]")
+                            // if the regex segment is not like "[ab]"
+                            if (!curRegex.First().Equals("[") || !curRegex.Last().Equals("]"))
                             {
-                                if (curSecond.All(char.IsLetterOrDigit))
+                                if (curString.All(char.IsLetterOrDigit))
                                 {
-                                    queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[" + curFirst + ConvertNumLetter(curSecond) + "]" + curStr));
+                                    queue.Enqueue(x - 1, y - 1, @"[" + curRegex + ConvertNumLetter(curString) + "]", curStr);
                                 }
-                                queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[" + curFirst + curSecond + "]" + curStr));
+
+                                queue.Enqueue(x - 1, y - 1, @"[" + curRegex + curString + "]", curStr);
                             }
                             else
                             {
-                                if (curSecond.All(char.IsLetterOrDigit))
+                                if (curString.All(char.IsLetterOrDigit))
                                 {
-                                    queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[a-zA-Z" + ConvertNumLetter(curSecond) + "]" + curStr));
+                                    queue.Enqueue(x - 1, y - 1, @"[" + curRegex.Substring(1, curRegex.Length - 2) + ConvertNumLetter(curString) + "]", curStr);
                                 }
-                                queue.Enqueue(new Tuple<int, int, string>(x - 1, y - 1, @"[a-zA-Z" + curSecond + "]" + curStr));
+
+                                queue.Enqueue(x - 1, y - 1, @"[" + curRegex.Substring(1, curRegex.Length - 2) + curString + "]", curStr);
                             }
                         }
                     }
                 }
             }
+        }
+
+    }
+
+    public static class ExtensionMethod
+    {
+        public static void Enqueue(this Queue<Tuple<int, int, List<string>>> queue, int x, int y, string addedStr, List<string> curStr)
+        {
+            List<string> added = new List<string>();
+            added.Add(addedStr);
+            added.AddRange(curStr);
+            queue.Enqueue(new Tuple<int, int, List<string>>(x, y, added));
 
         }
     }
