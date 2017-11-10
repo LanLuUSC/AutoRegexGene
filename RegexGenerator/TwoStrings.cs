@@ -66,7 +66,7 @@ namespace RegexGenerator
             }
         }
 
-        static int GetEditDistance(List<string> first, List<string> second,out List<List<int>> direction)
+        internal static int GetEditDistance(List<string> first, List<string> second,out List<List<int>> direction)
         {
             // calculate edit distance and keep the backtrace path
             int rows = first.Count + 1;
@@ -149,7 +149,7 @@ namespace RegexGenerator
 
         }
 
-        static bool isEqual(string regex, string input)
+        internal static bool isEqual(string regex, string input)
         {
 
             Regex reg = new Regex(regex);
@@ -165,7 +165,7 @@ namespace RegexGenerator
         /// </summary>
         /// <param name="input">first input string</param>
         /// <returns>array of segmentation strings</returns>
-        static List<string> SegmentizeByGroup(string input)
+        internal static List<string> SegmentizeByGroup(string input)
         {
             // trim
             input.Trim();
@@ -209,7 +209,7 @@ namespace RegexGenerator
         /// </summary>
         /// <param name="input">second input string</param>
         /// <returns>array of segmentation strings</returns>
-        static List<string> SegmentizeByCharacter(string input)
+        internal static List<string> SegmentizeByCharacter(string input)
         {
             List<string> list = new List<string>();
 
@@ -228,7 +228,7 @@ namespace RegexGenerator
         /// <param name="index">Recursion parameter</param>
         /// <param name="curRegex">Recursion parameter</param>
         /// <param name="suggestions">results</param>
-        static void SingleStringSuggestions(List<string> segments, int index, List<string> curRegex, List<List<string>> suggestions)
+        public static void SingleStringSuggestions(List<string> segments, int index, List<string> curRegex, List<List<string>> suggestions)
         {
             // do recursion to each segment
             // add its regex representation
@@ -271,7 +271,7 @@ namespace RegexGenerator
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        static string ConvertNumLetter(string input)
+        internal static string ConvertNumLetter(string input)
         {
             StringBuilder regex = new StringBuilder();
 
@@ -298,7 +298,7 @@ namespace RegexGenerator
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        static string ConvertSpecial(string input)
+        internal static string ConvertSpecial(string input)
         {
             const string specialCharacters = @"[\/^$.|?*+(){}";
             if (input.Count() == 1 && specialCharacters.Contains(input))
@@ -316,7 +316,7 @@ namespace RegexGenerator
         /// <param name="input"> normal input without being regexed, which is also a parameter in GetEditDistance Method</param>
         /// <param name="direction">direction matrix created from GetEditDistance Method</param>
         /// <param name="results"> the results regex</param>
-        static void ModifySuggestion(List<string> regex, List<string> input, List<List<int>> direction, out List<List<string>> results)
+        public static void ModifySuggestion(List<string> regex, List<string> input, List<List<int>> direction, out List<List<string>> results)
         {
             int rows = regex.Count + 1;
             int cols = input.Count + 1;
@@ -393,7 +393,6 @@ namespace RegexGenerator
                 }
             }
         }
-
     }
 
     public static class ExtensionMethod

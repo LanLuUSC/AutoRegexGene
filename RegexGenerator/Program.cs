@@ -10,7 +10,7 @@ namespace RegexGenerator
     {
         static void Main(string[] args)
         {
-            TwoStrings.Test();
+            MultipleStrings.Test();
         }
 
     }

@@ -52,7 +52,7 @@ namespace RegexGenerator
             return;
         }
 
-        static void Permutation(List<string> segments, int index, string curRegex, string curShortRegex, List<string> finalResults, List<string> finalShortResults)
+        internal static void Permutation(List<string> segments, int index, string curRegex, string curShortRegex, List<string> finalResults, List<string> finalShortResults)
         {
             // use recursion
             // to each segment
@@ -84,7 +84,7 @@ namespace RegexGenerator
             return;
         }
 
-        static string CreateRegex(string input)
+        internal static string CreateRegex(string input)
         {
             StringBuilder regex = new StringBuilder();
 
