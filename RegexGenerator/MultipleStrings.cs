@@ -13,9 +13,9 @@ namespace RegexGenerator
         public static void Test()
         {
             List<string> inputs = new List<string>();
-            inputs.Add("(213)304-1072");
-            inputs.Add("234-345-3432");
-            inputs.Add("2153456789");
+            inputs.Add("AB23456d-234s");
+            inputs.Add("AC999999-9998");
+            inputs.Add("BB34234c-223");
             List<List<string>> suggestions;
             GiveSuggestions(inputs, out suggestions);
 

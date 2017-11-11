@@ -362,14 +362,21 @@ namespace RegexGenerator
                     {
                         if (curString.All(char.IsLetterOrDigit))
                         {
-                            queue.Enqueue(x, y - 1, "(" + ConvertNumLetter(curString) + ")?", curStr);
+                            queue.Enqueue(x, y - 1, ConvertNumLetter(curString) + "?", curStr);
                         }
-
-                        queue.Enqueue(x, y - 1, "(" + curString + ")?", curStr);
+                        queue.Enqueue(x, y - 1, curString + "?", curStr);
                     }
                     if ((locDir & DIR_DOWN) != 0) // current first string character is optional in regex
                     {
-                        queue.Enqueue(x - 1, y, "(" + curRegex + ")?", curStr);
+                        // if curString is already a regex like "*****?" , we don't need to add another '?' to make it "*****??" 
+                        if (curRegex.Length < 2 || !(curRegex.Last() == '?' && curRegex[curRegex.Length - 2] != '\\'))
+                        {
+                            queue.Enqueue(x - 1, y, curRegex + "?", curStr);
+                        }
+                        else
+                        {
+                            queue.Enqueue(x - 1, y, curRegex, curStr);
+                        }
                     }
                     if ((locDir & DIR_DIAGONAL) != 0) // second or first string is the same or can be replaced
                     {
@@ -380,24 +387,12 @@ namespace RegexGenerator
                         else
                         {
                             // if the regex segment is not like "[ab]"
-                            if (!curRegex.First().Equals("[") || !curRegex.Last().Equals("]"))
+                            if (curString.All(char.IsLetterOrDigit))
                             {
-                                if (curString.All(char.IsLetterOrDigit))
-                                {
-                                    queue.Enqueue(x - 1, y - 1, @"[" + curRegex + ConvertNumLetter(curString) + "]", curStr);
-                                }
-
-                                queue.Enqueue(x - 1, y - 1, @"[" + curRegex + curString + "]", curStr);
+                                queue.Enqueue(x - 1, y - 1, "(" + curRegex + "|" + ConvertNumLetter(curString) + ")", curStr);
                             }
-                            else
-                            {
-                                if (curString.All(char.IsLetterOrDigit))
-                                {
-                                    queue.Enqueue(x - 1, y - 1, @"[" + curRegex.Substring(1, curRegex.Length - 2) + ConvertNumLetter(curString) + "]", curStr);
-                                }
 
-                                queue.Enqueue(x - 1, y - 1, @"[" + curRegex.Substring(1, curRegex.Length - 2) + curString + "]", curStr);
-                            }
+                            queue.Enqueue(x - 1, y - 1, "(" + curRegex + "|" + curString + ")", curStr);
                         }
                     }
                 }
