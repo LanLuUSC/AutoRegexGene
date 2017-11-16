@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace RegexGenerator
 {
@@ -16,12 +17,75 @@ namespace RegexGenerator
             inputs.Add("AB23456d-234s");
             inputs.Add("AC999999-9998");
             inputs.Add("BB34234c-223");
+            inputs.Add("CD34234h-1000");
+            //inputs.Add("(213)304-1072");
+            //inputs.Add("234-345-3432");
+            //inputs.Add("2153456789");
             List<List<string>> suggestions;
             GiveSuggestions(inputs, out suggestions);
 
+            foreach (var suggest in suggestions)
+            {
+                Console.Write("--\t");
+                foreach (var ch in suggest)
+                {
+                    Console.Write("{0}", ch);
+                }
+                Console.Write("\n\t");
+
+                for (int i = 0; i < 10; ++i)
+                {
+
+                    List<string> output = new List<string>();
+                    PrintHelper(suggest, out output);
+                    foreach (var ch in output)
+                    {
+                        Console.Write("{0}", ch);
+                    }
+                    Console.Write("\n\t");
+                }
+                Console.Write("\n");
+            }
             return;
 
         }
+
+        public static void PrintHelper(List<string> input, out List<string> output)
+        {
+            output = new List<string>();
+
+            Random ran = new Random(Guid.NewGuid().GetHashCode());
+
+            foreach (string symbol in input)
+            {
+                while (true)
+                {
+                    int value = ran.Next() % 250 + 33;
+                    string ascii = value < 255 ? ((char)value).ToString() : string.Empty;
+                    Regex regex = new Regex(symbol);
+                    MatchCollection matches = regex.Matches(ascii);
+                    if (hasMatch(matches, ascii))
+                    {
+                        output.Add(ascii);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private static bool hasMatch(MatchCollection collection, string value)
+        {
+            foreach (var match in collection)
+            {
+                if (match.ToString() == value)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
         public static void GiveSuggestions(List<string> inputs, out List<List<string>> suggestions)
         {
             // do permutation and get all the results
@@ -38,7 +102,6 @@ namespace RegexGenerator
                 List<List<string>> candidates = new List<List<string>>();
                 int distance = Int32.MaxValue;
                 List<string> secondCharsList = TwoStrings.SegmentizeByCharacter(inputs[i]);
-
                 
                 suggestions = new List<List<string>>();
                 foreach (var regexSuggestion in regexSuggetions)
